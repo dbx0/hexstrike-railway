@@ -1,7 +1,7 @@
 # =============================================================================
 # Stage 1: Go tools builder
 # =============================================================================
-FROM golang:1.23 AS go-builder
+FROM golang:latest AS go-builder
 
 ENV CGO_ENABLED=0 GOFLAGS=-trimpath
 
