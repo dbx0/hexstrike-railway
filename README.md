@@ -2,7 +2,7 @@
 
 Deploy [HexStrike AI MCP v6.0](https://github.com/0x4m4/hexstrike-ai) on [Railway](https://railway.com) — a full Kali Linux environment with 150+ security tools, served as a remote MCP server. Connect Claude Desktop, Cursor, or any MCP client directly to your Railway URL. No local setup required.
 
-[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/Z3D2gc?referralCode=Qs5clj&utm_medium=integration&utm_source=template&utm_campaign=generic)
+[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/hexstrike-mcp?referralCode=Qs5clj&utm_medium=integration&utm_source=template&utm_campaign=generic)
 
 ---
 
