@@ -11,7 +11,7 @@ RUN apt-get update && apt-get upgrade -y && apt-get install -y \
     nuclei subfinder httpx-toolkit katana naabu \
     python3 python3-pip python3-venv python3-dev \
     golang \
-    openjdk-17-jdk \
+    default-jdk \
     ruby ruby-dev build-essential \
     chromium chromium-driver \
     nginx gettext-base \
