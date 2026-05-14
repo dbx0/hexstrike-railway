@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+*.pyo
+.env
+.DS_Store
+*.egg-info/
+dist/
+build/
+hexstrike_mcp.py
+.claude/
+docs/

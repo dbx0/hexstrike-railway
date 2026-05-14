@@ -1,0 +1,7 @@
+[deploy]
+healthcheckPath = "/health"
+healthcheckTimeout = 300
+
+[variables]
+AUTH_TOKEN = { description = "Secret API key. Required on every request as: Authorization: Bearer <token>. Auto-generated on deploy.", defaultValue = "${{ secret() }}" }
+HEXSTRIKE_PORT = { description = "Internal port for the hexstrike Flask server.", defaultValue = "8888" }

@@ -1,0 +1,9 @@
+.git
+.gitignore
+.railwayignore
+.dockerignore
+.claude
+docs
+assets
+README.md
+*.md
