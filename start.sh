@@ -13,16 +13,22 @@ fi
 
 echo "[hexstrike] Starting hexstrike_server.py on port ${HEXSTRIKE_PORT}..."
 cd /opt/hexstrike-ai
-/opt/hexstrike-env/bin/python3 hexstrike_server.py --port "$HEXSTRIKE_PORT" &
+/opt/hexstrike-env/bin/python3 hexstrike_server.py --port "$HEXSTRIKE_PORT" \
+    2>&1 | sed 's/^/[hexstrike-server] /' &
+SERVER_PID=$!
 
-echo "[hexstrike] Waiting for API server to be ready..."
-for i in $(seq 1 60); do
+echo "[hexstrike] Waiting for API server to be ready (up to 120s)..."
+for i in $(seq 1 120); do
     if curl -sf "http://localhost:${HEXSTRIKE_PORT}/health" > /dev/null 2>&1; then
         echo "[hexstrike] API server ready (${i}s)."
         break
     fi
-    if [ "$i" -eq 60 ]; then
-        echo "[hexstrike] WARNING: API server did not respond in 60s, starting anyway." >&2
+    if ! kill -0 "$SERVER_PID" 2>/dev/null; then
+        echo "[hexstrike] ERROR: hexstrike_server.py process died (PID ${SERVER_PID})." >&2
+        break
+    fi
+    if [ "$i" -eq 120 ]; then
+        echo "[hexstrike] WARNING: API server did not respond in 120s, starting anyway." >&2
     fi
     sleep 1
 done
