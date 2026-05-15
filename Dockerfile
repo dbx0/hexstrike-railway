@@ -33,11 +33,12 @@ RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-reco
     nodejs npm \
     git curl wget unzip tar jq \
     ; dpkg --configure -a --force-all 2>/dev/null || true \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
-
-# Strip setuid bits — Railway's seccomp policy blocks suid exec (EPERM).
-# nmap setuid is only needed for raw-socket SYN scans; TCP connect (-sT) works without it.
-RUN find /usr/lib/nmap /usr/bin/nmap /usr/sbin/nmap -type f 2>/dev/null | xargs -r chmod u-s || true
+    && apt-get clean && rm -rf /var/lib/apt/lists/* \
+    && chmod u-s /usr/lib/nmap/nmap 2>/dev/null || true \
+    && setcap -r /usr/lib/nmap/nmap 2>/dev/null || true \
+    && printf '#!/bin/sh\nexec /usr/lib/nmap/nmap --unprivileged "$@"\n' > /usr/bin/nmap \
+    && chmod +x /usr/bin/nmap \
+    && ln -sf /usr/bin/httpx-toolkit /usr/local/bin/httpx
 
 # Ruby gems
 RUN gem install evil-winrm --no-document
