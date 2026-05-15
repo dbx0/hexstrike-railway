@@ -56,6 +56,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     recon-ng \
     # API / utility
     httpie \
+    # Port scanner
+    rustscan \
+    # Exploit DB / searchsploit
+    exploitdb \
+    # Hex editor
+    xxd \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Ruby gems — evil-winrm, wpscan, one_gadget (binary exploit helper), zsteg (steg)
@@ -65,10 +71,10 @@ RUN gem install evil-winrm wpscan one_gadget zsteg --no-document || true
 # Use curl redirect trick to resolve latest version without hitting GitHub API rate limits.
 # Each download is non-fatal (|| true) so one missing binary never breaks the build.
 
-RUN VER=$(curl -sfL -o /dev/null -w "%{url_effective}" \
-        https://github.com/hahwul/dalfox/releases/latest | sed 's|.*/tag/||; s/^v//') && \
-    curl -sL "https://github.com/hahwul/dalfox/releases/download/v${VER}/dalfox_${VER}_linux_amd64.tar.gz" \
-        | tar xz -C /usr/local/bin dalfox && chmod +x /usr/local/bin/dalfox \
+RUN URL=$(curl -sf https://api.github.com/repos/hahwul/dalfox/releases/latest \
+        | grep '"browser_download_url"' | grep 'linux_amd64.tar.gz' | head -1 \
+        | sed 's/.*"\(https[^"]*\)".*/\1/') && \
+    [ -n "$URL" ] && curl -sL "$URL" | tar xz -C /usr/local/bin dalfox && chmod +x /usr/local/bin/dalfox \
     || echo "WARNING: dalfox not installed"
 
 RUN VER=$(curl -sfL -o /dev/null -w "%{url_effective}" \
@@ -86,23 +92,15 @@ RUN VER=$(curl -sfL -o /dev/null -w "%{url_effective}" \
         | tar xz -C /usr/local/bin gau && chmod +x /usr/local/bin/gau \
     || echo "WARNING: gau not installed"
 
-RUN VER=$(curl -sfL -o /dev/null -w "%{url_effective}" \
-        https://github.com/hakluke/hakrawler/releases/latest | sed 's|.*/tag/||; s/^v//') && \
-    curl -sL "https://github.com/hakluke/hakrawler/releases/download/v${VER}/hakrawler_${VER}_linux_amd64.zip" \
-        -o /tmp/hakrawler.zip && \
+RUN URL=$(curl -sf https://api.github.com/repos/hakluke/hakrawler/releases/latest \
+        | grep '"browser_download_url"' | grep 'linux_amd64' | head -1 \
+        | sed 's/.*"\(https[^"]*\)".*/\1/') && \
+    [ -n "$URL" ] && \
+    curl -sL "$URL" -o /tmp/hakrawler.zip && \
     unzip -qo /tmp/hakrawler.zip -d /tmp/hakrawler-bin && \
     find /tmp/hakrawler-bin -name 'hakrawler' -exec mv {} /usr/local/bin/hakrawler \; && \
     rm -rf /tmp/hakrawler.zip /tmp/hakrawler-bin && chmod +x /usr/local/bin/hakrawler \
     || echo "WARNING: hakrawler not installed"
-
-# RustScan — distributed as .deb via GitHub releases
-RUN VTAG=$(curl -sfL -o /dev/null -w "%{url_effective}" \
-        https://github.com/RustScan/RustScan/releases/latest | sed 's|.*/tag/||') && \
-    VER=$(echo "$VTAG" | sed 's/^v//') && \
-    curl -sL "https://github.com/RustScan/RustScan/releases/download/${VTAG}/rustscan_${VER}_amd64.deb" \
-        -o /tmp/rustscan.deb && \
-    dpkg -i /tmp/rustscan.deb && rm /tmp/rustscan.deb \
-    || echo "WARNING: rustscan not installed"
 
 # Binary tools not in apt
 RUN VER=$(curl -sfL -o /dev/null -w "%{url_effective}" \
@@ -142,10 +140,10 @@ RUN VER=$(curl -sfL -o /dev/null -w "%{url_effective}" \
         | tar xz -C /usr/local/bin qsreplace && chmod +x /usr/local/bin/qsreplace \
     || echo "WARNING: qsreplace not installed"
 
-RUN VER=$(curl -sfL -o /dev/null -w "%{url_effective}" \
-        https://github.com/Sh1yo/x8/releases/latest | sed 's|.*/tag/||; s/^v//') && \
-    curl -sL "https://github.com/Sh1yo/x8/releases/download/v${VER}/x8_linux_x86_64.tar.gz" \
-        | tar xz -C /usr/local/bin x8 && chmod +x /usr/local/bin/x8 \
+RUN URL=$(curl -sf https://api.github.com/repos/Sh1yo/x8/releases/latest \
+        | grep '"browser_download_url"' | grep 'linux_x86_64' | head -1 \
+        | sed 's/.*"\(https[^"]*\)".*/\1/') && \
+    [ -n "$URL" ] && curl -sL "$URL" | tar xz -C /usr/local/bin x8 && chmod +x /usr/local/bin/x8 \
     || echo "WARNING: x8 not installed"
 
 # Node.js MCP SSE bridge
@@ -189,9 +187,14 @@ RUN /opt/hexstrike-env/bin/pip install --no-cache-dir \
     sherlock-project \
     || echo "WARNING: some pip security tools not installed"
 
+# paramspider — not on PyPI, install from GitHub
+RUN git clone --depth=1 https://github.com/0xKayala/ParamSpider /opt/paramspider && \
+    /opt/hexstrike-env/bin/pip install --no-cache-dir -e /opt/paramspider \
+    || echo "WARNING: paramspider not installed"
+
 # Symlinks so hexstrike's `which` checks match installed binary names
-RUN ln -sf /opt/hexstrike-env/bin/vol3      /usr/local/bin/vol          2>/dev/null || true && \
-    ln -sf /opt/hexstrike-env/bin/vol3      /usr/local/bin/volatility3  2>/dev/null || true && \
+RUN ln -sf /opt/hexstrike-env/bin/vol       /usr/local/bin/vol          2>/dev/null || true && \
+    ln -sf /opt/hexstrike-env/bin/vol       /usr/local/bin/volatility3  2>/dev/null || true && \
     ln -sf /opt/hexstrike-env/bin/ROPgadget /usr/local/bin/ropgadget    2>/dev/null || true && \
     ln -sf /opt/hexstrike-env/bin/pwn       /usr/local/bin/pwntools     2>/dev/null || true && \
     ln -sf /opt/hexstrike-env/bin/sherlock  /usr/local/bin/sherlock     2>/dev/null || true && \
@@ -199,7 +202,9 @@ RUN ln -sf /opt/hexstrike-env/bin/vol3      /usr/local/bin/vol          2>/dev/n
     ln -sf /opt/hexstrike-env/bin/prowler   /usr/local/bin/prowler      2>/dev/null || true && \
     ln -sf /opt/hexstrike-env/bin/scout-suite /usr/local/bin/scout-suite 2>/dev/null || true && \
     ln -sf /usr/bin/netexec                 /usr/local/bin/nxc          2>/dev/null || true && \
-    ln -sf /usr/bin/msfvenom                /usr/local/bin/msfvenom     2>/dev/null || true
+    ln -sf /usr/bin/msfvenom                /usr/local/bin/msfvenom     2>/dev/null || true && \
+    ln -sf /usr/local/bin/one_gadget        /usr/local/bin/one-gadget   2>/dev/null || true && \
+    ln -sf /usr/bin/theHarvester            /usr/local/bin/theharvester 2>/dev/null || true
 
 # Re-pin pydantic v2 last — kube-hunter/scoutsuite may downgrade it to v1,
 # which breaks fastmcp (TypeAdapter was added in pydantic v2).
