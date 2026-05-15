@@ -49,9 +49,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     # Web security
     dotdotpwn xsser wafw00f \
     # Password
-    patator hash-identifier hashpump \
+    patator hash-identifier \
     # Forensics
-    scalpel bulk-extractor outguess sleuthkit \
+    scalpel bulk-extractor sleuthkit \
     # OSINT
     recon-ng \
     # API / utility
