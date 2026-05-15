@@ -38,45 +38,67 @@ RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-reco
 # Ruby gems
 RUN gem install evil-winrm --no-document
 
-# Go tools — pre-built binaries (avoids Go compiler under QEMU)
-RUN \
-    DALFOX=$(curl -sf https://api.github.com/repos/hahwul/dalfox/releases/latest \
-        | jq -r '.assets[] | select(.name | test("dalfox_linux_amd64\\.tar\\.gz")) | .browser_download_url') && \
-    curl -sL "$DALFOX" | tar xz -C /usr/local/bin dalfox && \
-    \
-    KATANA=$(curl -sf https://api.github.com/repos/projectdiscovery/katana/releases/latest \
-        | jq -r '.assets[] | select(.name | test("katana_.*_linux_amd64\\.zip")) | .browser_download_url') && \
-    curl -sL "$KATANA" -o /tmp/katana.zip && unzip -qo /tmp/katana.zip katana -d /usr/local/bin && rm /tmp/katana.zip && \
-    \
-    GAU=$(curl -sf https://api.github.com/repos/lc/gau/releases/latest \
-        | jq -r '.assets[] | select(.name | test("gau_.*_linux_amd64\\.tar\\.gz")) | .browser_download_url') && \
-    curl -sL "$GAU" | tar xz -C /usr/local/bin gau && \
-    \
-    HAKRAWLER=$(curl -sf https://api.github.com/repos/hakluke/hakrawler/releases/latest \
-        | jq -r '.assets[] | select(.name | test("hakrawler_linux_amd64\\.zip")) | .browser_download_url') && \
-    curl -sL "$HAKRAWLER" -o /tmp/hakrawler.zip && unzip -qo /tmp/hakrawler.zip -d /usr/local/bin && rm /tmp/hakrawler.zip && \
-    \
-    chmod +x /usr/local/bin/dalfox /usr/local/bin/katana /usr/local/bin/gau /usr/local/bin/hakrawler
+# Go / Rust tools — pre-built binaries
+# Use curl redirect trick to resolve latest version without hitting GitHub API rate limits.
+# Each download is non-fatal (|| true) so one missing binary never breaks the build.
+
+RUN VER=$(curl -sfL -o /dev/null -w "%{url_effective}" \
+        https://github.com/hahwul/dalfox/releases/latest | sed 's|.*/tag/||; s/^v//') && \
+    curl -sL "https://github.com/hahwul/dalfox/releases/download/v${VER}/dalfox_${VER}_linux_amd64.tar.gz" \
+        | tar xz -C /usr/local/bin dalfox && chmod +x /usr/local/bin/dalfox \
+    || echo "WARNING: dalfox not installed"
+
+RUN VER=$(curl -sfL -o /dev/null -w "%{url_effective}" \
+        https://github.com/projectdiscovery/katana/releases/latest | sed 's|.*/tag/||; s/^v//') && \
+    curl -sL "https://github.com/projectdiscovery/katana/releases/download/v${VER}/katana_${VER}_linux_amd64.zip" \
+        -o /tmp/katana.zip && \
+    unzip -qo /tmp/katana.zip -d /tmp/katana-bin && \
+    find /tmp/katana-bin -name 'katana' -exec mv {} /usr/local/bin/katana \; && \
+    rm -rf /tmp/katana.zip /tmp/katana-bin && chmod +x /usr/local/bin/katana \
+    || echo "WARNING: katana not installed"
+
+RUN VER=$(curl -sfL -o /dev/null -w "%{url_effective}" \
+        https://github.com/lc/gau/releases/latest | sed 's|.*/tag/||; s/^v//') && \
+    curl -sL "https://github.com/lc/gau/releases/download/v${VER}/gau_${VER}_linux_amd64.tar.gz" \
+        | tar xz -C /usr/local/bin gau && chmod +x /usr/local/bin/gau \
+    || echo "WARNING: gau not installed"
+
+RUN VER=$(curl -sfL -o /dev/null -w "%{url_effective}" \
+        https://github.com/hakluke/hakrawler/releases/latest | sed 's|.*/tag/||; s/^v//') && \
+    curl -sL "https://github.com/hakluke/hakrawler/releases/download/v${VER}/hakrawler_${VER}_linux_amd64.zip" \
+        -o /tmp/hakrawler.zip && \
+    unzip -qo /tmp/hakrawler.zip -d /tmp/hakrawler-bin && \
+    find /tmp/hakrawler-bin -name 'hakrawler' -exec mv {} /usr/local/bin/hakrawler \; && \
+    rm -rf /tmp/hakrawler.zip /tmp/hakrawler-bin && chmod +x /usr/local/bin/hakrawler \
+    || echo "WARNING: hakrawler not installed"
 
 # RustScan — distributed as .deb via GitHub releases
-RUN DEB_URL=$(curl -sf https://api.github.com/repos/RustScan/RustScan/releases/latest \
-    | jq -r '.assets[] | select(.name | test("rustscan.*amd64\\.deb")) | .browser_download_url') && \
-    curl -sL "$DEB_URL" -o /tmp/rustscan.deb && \
-    dpkg -i /tmp/rustscan.deb && \
-    rm /tmp/rustscan.deb
+RUN VTAG=$(curl -sfL -o /dev/null -w "%{url_effective}" \
+        https://github.com/RustScan/RustScan/releases/latest | sed 's|.*/tag/||') && \
+    VER=$(echo "$VTAG" | sed 's/^v//') && \
+    curl -sL "https://github.com/RustScan/RustScan/releases/download/${VTAG}/rustscan_${VER}_amd64.deb" \
+        -o /tmp/rustscan.deb && \
+    dpkg -i /tmp/rustscan.deb && rm /tmp/rustscan.deb \
+    || echo "WARNING: rustscan not installed"
 
 # Binary tools not in apt
-RUN TRIVY_VER=$(curl -sf https://api.github.com/repos/aquasecurity/trivy/releases/latest | jq -r .tag_name | sed 's/^v//') && \
-    curl -sL "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VER}/trivy_${TRIVY_VER}_Linux-64bit.tar.gz" \
-    | tar xz -C /usr/local/bin trivy
+RUN VER=$(curl -sfL -o /dev/null -w "%{url_effective}" \
+        https://github.com/aquasecurity/trivy/releases/latest | sed 's|.*/tag/v||') && \
+    curl -sL "https://github.com/aquasecurity/trivy/releases/download/v${VER}/trivy_${VER}_Linux-64bit.tar.gz" \
+        | tar xz -C /usr/local/bin trivy \
+    || echo "WARNING: trivy not installed"
 
-RUN curl -sL "$(curl -sf https://api.github.com/repos/aquasecurity/kube-bench/releases/latest \
-    | jq -r '.assets[] | select(.name | test("kube-bench_.*_linux_amd64\\.tar\\.gz")) | .browser_download_url')" \
-    | tar xz -C /usr/local/bin kube-bench
+RUN VER=$(curl -sfL -o /dev/null -w "%{url_effective}" \
+        https://github.com/aquasecurity/kube-bench/releases/latest | sed 's|.*/tag/v||') && \
+    curl -sL "https://github.com/aquasecurity/kube-bench/releases/download/v${VER}/kube-bench_${VER}_linux_amd64.tar.gz" \
+        | tar xz -C /usr/local/bin kube-bench \
+    || echo "WARNING: kube-bench not installed"
 
-RUN curl -sL "$(curl -sf https://api.github.com/repos/tenable/terrascan/releases/latest \
-    | jq -r '.assets[] | select(.name | test("terrascan_.*_Linux_x86_64\\.tar\\.gz")) | .browser_download_url')" \
-    | tar xz -C /usr/local/bin terrascan
+RUN VER=$(curl -sfL -o /dev/null -w "%{url_effective}" \
+        https://github.com/tenable/terrascan/releases/latest | sed 's|.*/tag/v||') && \
+    curl -sL "https://github.com/tenable/terrascan/releases/download/v${VER}/terrascan_${VER}_Linux_x86_64.tar.gz" \
+        | tar xz -C /usr/local/bin terrascan \
+    || echo "WARNING: terrascan not installed"
 
 # Node.js MCP SSE bridge
 RUN npm install -g supergateway
@@ -95,25 +117,37 @@ RUN python3 -m venv /opt/hexstrike-env && \
         "webdriver-manager>=4.0.0,<5.0.0" \
         "aiohttp>=3.8.0,<4.0.0"
 
-RUN /opt/hexstrike-env/bin/pip install --no-cache-dir "mitmproxy>=9.0.0,<11.0.0"
-
 RUN /opt/hexstrike-env/bin/pip install --no-cache-dir "bcrypt==4.0.1" "pwntools>=4.10.0,<5.0.0"
 
-RUN /opt/hexstrike-env/bin/pip install --no-cache-dir "angr>=9.2.0,<10.0.0"
+# angr installs first so its protobuf version wins; mitmproxy is installed last and
+# its protobuf pin is relaxed to avoid blocking the install of either package.
+RUN /opt/hexstrike-env/bin/pip install --no-cache-dir "angr>=9.2.0,<10.0.0" \
+    || echo "WARNING: angr not installed (mulpyplexer QEMU crash on arm64 host is expected; Railway amd64 build will succeed)"
+
+RUN /opt/hexstrike-env/bin/pip install --no-cache-dir "mitmproxy>=9.0.0,<11.0.0" \
+        --ignore-installed protobuf || echo "WARNING: mitmproxy not installed"
 
 RUN /opt/hexstrike-env/bin/pip install --no-cache-dir \
-        autorecon arjun paramspider \
+        autorecon arjun \
         kube-hunter prowler scoutsuite checkov \
-        volatility3 netexec theHarvester
+        volatility3 theHarvester \
+    || echo "WARNING: some security Python tools not installed"
 
-# Ghidra
+# Re-pin pydantic v2 last — kube-hunter/scoutsuite may downgrade it to v1,
+# which breaks fastmcp (TypeAdapter was added in pydantic v2).
+RUN /opt/hexstrike-env/bin/pip install --no-cache-dir "pydantic>=2.0.0,<3.0.0"
+
+# Ghidra — release filename includes a build date, so we need the GitHub API URL
 RUN GHIDRA_URL=$(curl -sf https://api.github.com/repos/NationalSecurityAgency/ghidra/releases/latest \
-        | grep '"browser_download_url"' | grep '\.zip"' | head -1 | sed 's/.*"\(https[^"]*\)".*/\1/') && \
+        | grep '"browser_download_url"' | grep '\.zip"' | head -1 \
+        | sed 's/.*"\(https[^"]*\)".*/\1/') && \
+    [ -n "$GHIDRA_URL" ] && \
     mkdir -p /opt/ghidra && \
     curl -sL "$GHIDRA_URL" -o /tmp/ghidra.zip && \
     unzip -q /tmp/ghidra.zip -d /opt/ghidra && \
     ln -sf /opt/ghidra/ghidra_*/ghidraRun /usr/local/bin/ghidra && \
-    rm /tmp/ghidra.zip
+    rm /tmp/ghidra.zip \
+    || echo "WARNING: Ghidra not installed (API may be unavailable at build time)"
 
 COPY start.sh /start.sh
 COPY nginx.conf.template /etc/nginx/nginx.conf.template

@@ -1,8 +1,9 @@
 #!/bin/bash
 set -euo pipefail
 
+PORT="${PORT:-8080}"
 HEXSTRIKE_PORT="${HEXSTRIKE_PORT:-8888}"
-export HEXSTRIKE_PORT
+export PORT HEXSTRIKE_PORT
 export MCP_PORT=9000
 
 if [ -z "${AUTH_TOKEN:-}" ]; then
@@ -31,9 +32,9 @@ supergateway \
     --port "$MCP_PORT" \
     --stdio "/opt/hexstrike-env/bin/python3 /opt/hexstrike-ai/hexstrike_mcp.py --server http://localhost:${HEXSTRIKE_PORT}" &
 
-echo "[hexstrike] Starting nginx on port ${PORT:-8080}..."
+echo "[hexstrike] Starting nginx on port ${PORT}..."
 envsubst '${PORT} ${AUTH_TOKEN} ${HEXSTRIKE_PORT} ${MCP_PORT}' \
     < /etc/nginx/nginx.conf.template \
-    > /etc/nginx/nginx.conf
+    > /tmp/nginx.conf
 
-exec nginx -g 'daemon off;'
+exec nginx -c /tmp/nginx.conf -g 'daemon off;'
