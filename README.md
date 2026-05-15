@@ -6,18 +6,165 @@ Deploy [HexStrike AI MCP v6.0](https://github.com/0x4m4/hexstrike-ai) on [Railwa
 
 ---
 
-## What's included
+## What’s included
 
 - **HexStrike AI v6.0** — Flask API server orchestrating 150+ security tools
-- **Kali Linux rolling** — full `kali-linux-headless` metapackage
+- **Kali Linux rolling** — full Kali apt toolset
 - **supergateway** — two listeners: **Streamable HTTP** at `/mcp` (Cursor’s default transport) and **SSE** at `/sse` + `/message` (e.g. Claude Desktop)
 - **nginx reverse proxy** — Bearer token auth on the public endpoint
-- **Go tools** — nuclei, subfinder, httpx, katana, naabu, dalfox, gau, ffuf, waybackurls, hakrawler
-- **Rust tools** — feroxbuster, rustscan, x8
-- **Binary tools** — trivy, kube-bench, terrascan
-- **Ruby gems** — evil-winrm
-- **Python tools** — pwntools, angr, mitmproxy, autorecon, arjun, prowler, scoutsuite, checkov, and more
-- **Java tools** — Ghidra (latest release)
+
+---
+
+## Tools
+
+### Network & Recon
+| Tool | Source | Description |
+|------|--------|-------------|
+| nmap | apt | Network scanner (unprivileged mode) |
+| masscan | apt | High-speed port scanner |
+| rustscan | apt | Fast port scanner |
+| naabu | apt | Port scanner by ProjectDiscovery |
+| dnsrecon | apt | DNS enumeration |
+| dnsenum | apt | DNS brute-force |
+| fierce | apt | DNS recon |
+| amass | apt | Subdomain enumeration |
+| subfinder | apt | Subdomain discovery |
+| netcat | apt | TCP/UDP utility |
+| net-tools | apt | ifconfig, netstat, etc. |
+| arp-scan | apt | ARP host discovery |
+| nbtscan | apt | NetBIOS scanner |
+| whois | apt | WHOIS lookup |
+
+### Web Security
+| Tool | Source | Description |
+|------|--------|-------------|
+| gobuster | apt | Directory/DNS brute-forcer |
+| dirb | apt | Web directory scanner |
+| dirsearch | apt | Web path scanner |
+| ffuf | apt | Fast web fuzzer |
+| wfuzz | apt | Web fuzzer |
+| nikto | apt | Web server vulnerability scanner |
+| sqlmap | apt | SQL injection automation |
+| whatweb | apt | Web fingerprinting |
+| httpx | apt (httpx-toolkit) | HTTP probing toolkit |
+| nuclei | apt | Template-based vuln scanner |
+| feroxbuster | apt | Fast content discovery |
+| katana | GitHub binary | Web crawler |
+| hakrawler | GitHub binary | Web crawler |
+| gau | GitHub binary | Fetch known URLs from AlienVault, Wayback |
+| waybackurls | GitHub binary | Fetch URLs from Wayback Machine |
+| dalfox | GitHub binary | XSS scanner |
+| wafw00f | apt | WAF detection |
+| dotdotpwn | apt | Path traversal fuzzer |
+| xsser | apt | XSS scanner |
+| x8 | GitHub binary | HTTP parameter discovery |
+| anew | GitHub binary | Append new lines to files |
+| qsreplace | GitHub binary | Replace query string values |
+| uro | pip | URL deduplication |
+| arjun | pip | HTTP parameter discovery |
+| paramspider | git | Parameter extraction from URLs |
+
+### Vulnerability Scanning
+| Tool | Source | Description |
+|------|--------|-------------|
+| trivy | GitHub binary | Container/filesystem vuln scanner |
+| nikto | apt | Web server scanner |
+| autorecon | pip | Multi-threaded enumeration |
+
+### Password Attacks
+| Tool | Source | Description |
+|------|--------|-------------|
+| hydra | apt | Online password cracker |
+| john | apt | John the Ripper password cracker |
+| hashcat | apt | GPU-accelerated password cracker |
+| medusa | apt | Parallel login brute-forcer |
+| patator | apt | Multi-purpose brute-forcer |
+| hash-identifier | apt | Hash type identifier |
+
+### Exploitation & Post-Exploitation
+| Tool | Source | Description |
+|------|--------|-------------|
+| metasploit-framework | apt | Exploitation framework (msfconsole, msfvenom) |
+| impacket | apt | Python SMB/AD attack suite |
+| responder | apt | LLMNR/NBT-NS/mDNS poisoner |
+| evil-winrm | gem | WinRM shell for pentesting |
+
+### SMB / Active Directory
+| Tool | Source | Description |
+|------|--------|-------------|
+| netexec (nxc) | apt | Swiss-army knife for network services |
+| enum4linux-ng | apt | SMB/Samba enumeration |
+| enum4linux | apt | SMB enumeration (legacy) |
+| smbmap | apt | SMB share mapper |
+| smbclient | apt | SMB client |
+
+### Binary Analysis & Reverse Engineering
+| Tool | Source | Description |
+|------|--------|-------------|
+| radare2 | apt | Reverse engineering framework |
+| gdb | apt | GNU debugger |
+| ltrace | apt | Library call tracer |
+| strace | apt | System call tracer |
+| binwalk | apt | Firmware analysis |
+| checksec | apt | Binary security checker |
+| ghidra | GitHub binary | NSA reverse engineering suite |
+| angr | pip | Binary analysis framework |
+| pwntools | pip | CTF exploit development |
+| ROPgadget (ropgadget) | pip | ROP gadget finder |
+| ropper | pip | ROP chain builder |
+| one_gadget (one-gadget) | gem | One-gadget RCE finder |
+| xxd | apt | Hex editor/viewer |
+
+### Forensics & Steganography
+| Tool | Source | Description |
+|------|--------|-------------|
+| steghide | apt | Steganography tool |
+| exiftool | apt | Metadata reader/writer |
+| foremost | apt | File carver |
+| testdisk | apt | Partition recovery |
+| scalpel | apt | File carver |
+| bulk-extractor | apt | Forensic feature extractor |
+| sleuthkit (mmls) | apt | Disk forensics toolkit |
+| volatility3 (vol) | pip | Memory forensics |
+| zsteg | gem | PNG/BMP steganography detector |
+
+### Cloud Security
+| Tool | Source | Description |
+|------|--------|-------------|
+| trivy | GitHub binary | Cloud/container scanner |
+| kube-bench | GitHub binary | Kubernetes CIS benchmark |
+| terrascan | GitHub binary | IaC security scanner |
+| checkov | pip | IaC static analysis |
+| kube-hunter | pip | Kubernetes penetration testing |
+| prowler | pip | AWS/Azure/GCP security auditor |
+| scoutsuite | pip | Multi-cloud security auditing |
+
+### OSINT
+| Tool | Source | Description |
+|------|--------|-------------|
+| recon-ng | apt | Web reconnaissance framework |
+| theHarvester (theharvester) | pip | Email/domain/host harvester |
+| shodan | pip | Shodan API client |
+| censys | pip | Censys API client |
+| sherlock | pip | Username hunt across social networks |
+
+### Network Analysis
+| Tool | Source | Description |
+|------|--------|-------------|
+| tshark | apt | Command-line Wireshark |
+| tcpdump | apt | Packet capture |
+| mitmproxy | pip | Interactive HTTPS proxy |
+
+### Wireless
+| Tool | Source | Description |
+|------|--------|-------------|
+| aircrack-ng | apt | Wireless auditing suite |
+
+### Web Proxy & API
+| Tool | Source | Description |
+|------|--------|-------------|
+| mitmproxy | pip | Interactive HTTPS proxy |
+| httpie | apt | User-friendly HTTP client |
 
 ---
 
