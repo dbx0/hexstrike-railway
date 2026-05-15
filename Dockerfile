@@ -1,32 +1,69 @@
-FROM kalilinux/kali-rolling
+FROM --platform=linux/amd64 kalilinux/kali-rolling
 
 ENV DEBIAN_FRONTEND=noninteractive
-ENV GOPATH=/opt/go
-ENV PATH="/opt/go/bin:${PATH}"
 
 # System packages — kali tools + all build/runtime deps in one layer
-RUN apt-get update && apt-get upgrade -y && apt-get install -y \
-    kali-linux-headless \
-    feroxbuster rustscan \
-    nuclei subfinder httpx-toolkit katana naabu \
+RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \
+    # Network & recon
+    nmap masscan dnsrecon dnsenum fierce amass \
+    netcat-openbsd net-tools arp-scan nbtscan whois \
+    # Web
+    gobuster dirb dirsearch nikto sqlmap wfuzz ffuf whatweb \
+    nuclei subfinder httpx-toolkit naabu feroxbuster \
+    # Exploitation & post-exploitation
+    metasploit-framework impacket-scripts responder \
+    # SMB / AD
+    enum4linux-ng smbmap smbclient \
+    # Password attacks
+    hydra john hashcat medusa \
+    # Binary & reverse engineering
+    radare2 binwalk gdb ltrace strace checksec \
+    # Forensics & steganography
+    steghide exiftool foremost testdisk \
+    # Network analysis
+    tshark tcpdump \
+    # Wireless
+    aircrack-ng \
+    # Runtime & build deps
     python3 python3-pip python3-venv python3-dev \
-    golang \
     default-jdk \
     ruby ruby-dev build-essential \
     chromium chromium-driver \
     nginx gettext-base \
     nodejs npm \
     git curl wget unzip tar jq \
+    ; dpkg --configure -a --force-all 2>/dev/null || true \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Ruby gems
 RUN gem install evil-winrm --no-document
 
-# Go tools not in Kali apt
-RUN go install github.com/hahwul/dalfox/v2@latest && \
-    go install github.com/lc/gau/v2/cmd/gau@latest && \
-    go install github.com/tomnomnom/waybackurls@latest && \
-    go install github.com/hakluke/hakrawler@latest
+# Go tools — pre-built binaries (avoids Go compiler under QEMU)
+RUN \
+    DALFOX=$(curl -sf https://api.github.com/repos/hahwul/dalfox/releases/latest \
+        | jq -r '.assets[] | select(.name | test("dalfox_linux_amd64\\.tar\\.gz")) | .browser_download_url') && \
+    curl -sL "$DALFOX" | tar xz -C /usr/local/bin dalfox && \
+    \
+    KATANA=$(curl -sf https://api.github.com/repos/projectdiscovery/katana/releases/latest \
+        | jq -r '.assets[] | select(.name | test("katana_.*_linux_amd64\\.zip")) | .browser_download_url') && \
+    curl -sL "$KATANA" -o /tmp/katana.zip && unzip -qo /tmp/katana.zip katana -d /usr/local/bin && rm /tmp/katana.zip && \
+    \
+    GAU=$(curl -sf https://api.github.com/repos/lc/gau/releases/latest \
+        | jq -r '.assets[] | select(.name | test("gau_.*_linux_amd64\\.tar\\.gz")) | .browser_download_url') && \
+    curl -sL "$GAU" | tar xz -C /usr/local/bin gau && \
+    \
+    HAKRAWLER=$(curl -sf https://api.github.com/repos/hakluke/hakrawler/releases/latest \
+        | jq -r '.assets[] | select(.name | test("hakrawler_linux_amd64\\.zip")) | .browser_download_url') && \
+    curl -sL "$HAKRAWLER" -o /tmp/hakrawler.zip && unzip -qo /tmp/hakrawler.zip -d /usr/local/bin && rm /tmp/hakrawler.zip && \
+    \
+    chmod +x /usr/local/bin/dalfox /usr/local/bin/katana /usr/local/bin/gau /usr/local/bin/hakrawler
+
+# RustScan — distributed as .deb via GitHub releases
+RUN DEB_URL=$(curl -sf https://api.github.com/repos/RustScan/RustScan/releases/latest \
+    | jq -r '.assets[] | select(.name | test("rustscan.*amd64\\.deb")) | .browser_download_url') && \
+    curl -sL "$DEB_URL" -o /tmp/rustscan.deb && \
+    dpkg -i /tmp/rustscan.deb && \
+    rm /tmp/rustscan.deb
 
 # Binary tools not in apt
 RUN TRIVY_VER=$(curl -sf https://api.github.com/repos/aquasecurity/trivy/releases/latest | jq -r .tag_name | sed 's/^v//') && \
@@ -66,7 +103,8 @@ RUN /opt/hexstrike-env/bin/pip install --no-cache-dir "angr>=9.2.0,<10.0.0"
 
 RUN /opt/hexstrike-env/bin/pip install --no-cache-dir \
         autorecon arjun paramspider \
-        kube-hunter prowler scoutsuite checkov
+        kube-hunter prowler scoutsuite checkov \
+        volatility3 netexec theHarvester
 
 # Ghidra
 RUN GHIDRA_URL=$(curl -sf https://api.github.com/repos/NationalSecurityAgency/ghidra/releases/latest \
