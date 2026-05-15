@@ -57,13 +57,17 @@ if [ "$API_READY" -ne 1 ]; then
 fi
 
 echo "[hexstrike] Starting supergateway (MCP Streamable HTTP) on port ${MCP_STREAM_PORT}..."
-supergateway \
-    --port "$MCP_STREAM_PORT" \
-    --stdio "$MCP_STDIO_CMD" \
-    --outputTransport streamableHttp \
-    --stateful \
-    --streamableHttpPath /mcp \
-    2>&1 | sed 's/^/[supergateway-stream] /' &
+(while true; do
+    supergateway \
+        --port "$MCP_STREAM_PORT" \
+        --stdio "$MCP_STDIO_CMD" \
+        --outputTransport streamableHttp \
+        --stateful \
+        --streamableHttpPath /mcp \
+        2>&1 | sed 's/^/[supergateway-stream] /'
+    echo "[hexstrike] supergateway-stream exited, restarting in 1s..."
+    sleep 1
+done) &
 
 if ! wait_tcp_port "$MCP_STREAM_PORT" "supergateway (streamable)"; then
     exit 1
