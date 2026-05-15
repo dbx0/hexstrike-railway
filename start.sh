@@ -81,7 +81,14 @@ SSE_GW_ARGS=(
 if [ -n "${MCP_PUBLIC_BASE_URL:-}" ]; then
     SSE_GW_ARGS+=(--baseUrl "${MCP_PUBLIC_BASE_URL}")
 fi
-"${SSE_GW_ARGS[@]}" 2>&1 | sed 's/^/[supergateway-sse] /' &
+# Wrap in restart loop: supergateway SSE crashes when a second client connects
+# (MCP SDK "Already connected to a transport"). Auto-restart so the next client works.
+(while true; do
+    "${SSE_GW_ARGS[@]}" 2>&1 | sed 's/^/[supergateway-sse] /'
+    echo "[hexstrike] supergateway-sse exited, restarting in 1s..."
+    sleep 1
+done) &
+SSE_GW_PID=$!
 
 if ! wait_tcp_port "$MCP_SSE_PORT" "supergateway (sse)"; then
     exit 1
