@@ -35,6 +35,10 @@ RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-reco
     ; dpkg --configure -a --force-all 2>/dev/null || true \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
+# Strip setuid bits — Railway's seccomp policy blocks suid exec (EPERM).
+# nmap setuid is only needed for raw-socket SYN scans; TCP connect (-sT) works without it.
+RUN find /usr/lib/nmap /usr/bin/nmap /usr/sbin/nmap -type f 2>/dev/null | xargs -r chmod u-s || true
+
 # Ruby gems
 RUN gem install evil-winrm --no-document
 
