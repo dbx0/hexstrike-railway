@@ -137,6 +137,10 @@ RUN /opt/hexstrike-env/bin/pip install --no-cache-dir \
 # which breaks fastmcp (TypeAdapter was added in pydantic v2).
 RUN /opt/hexstrike-env/bin/pip install --no-cache-dir "pydantic>=2.0.0,<3.0.0"
 
+# Re-pin urllib3 v2 last — some packages (e.g. kube-hunter) downgrade to 1.x,
+# which removes urllib3.BaseHTTPResponse that selenium 4.x requires.
+RUN /opt/hexstrike-env/bin/pip install --no-cache-dir "urllib3>=2.0.0,<3.0.0"
+
 # Ghidra — release filename includes a build date, so we need the GitHub API URL
 RUN GHIDRA_URL=$(curl -sf https://api.github.com/repos/NationalSecurityAgency/ghidra/releases/latest \
         | grep '"browser_download_url"' | grep '\.zip"' | head -1 \
