@@ -8,3 +8,5 @@ listenPort = 8080
 [variables]
 AUTH_TOKEN = { description = "Secret API key. Required on every request as: Authorization: Bearer <token>. Auto-generated on deploy.", defaultValue = "${{ secret() }}" }
 HEXSTRIKE_PORT = { description = "Internal port for the hexstrike Flask server.", defaultValue = "8888" }
+MCP_STREAM_PORT = { description = "Internal port for supergateway (Streamable HTTP → stdio).", defaultValue = "9000" }
+MCP_SSE_PORT = { description = "Internal port for supergateway (SSE → stdio).", defaultValue = "9001" }
