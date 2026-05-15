@@ -1,6 +1,8 @@
 FROM --platform=linux/amd64 kalilinux/kali-rolling
 
 ENV DEBIAN_FRONTEND=noninteractive
+# Expose venv tools to PATH so hexstrike's `which` checks find them
+ENV PATH="/opt/hexstrike-env/bin:/usr/local/bin:$PATH"
 
 # System packages — kali tools + all build/runtime deps in one layer
 RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \
@@ -40,8 +42,24 @@ RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-reco
     && chmod +x /usr/bin/nmap \
     && ln -sf /usr/bin/httpx-toolkit /usr/local/bin/httpx
 
-# Ruby gems
-RUN gem install evil-winrm --no-document
+# Additional Kali tools not in the main layer
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    # Network / AD
+    netexec enum4linux \
+    # Web security
+    dotdotpwn xsser wafw00f \
+    # Password
+    patator hash-identifier hashpump \
+    # Forensics
+    scalpel bulk-extractor outguess sleuthkit \
+    # OSINT
+    recon-ng \
+    # API / utility
+    httpie \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Ruby gems — evil-winrm, wpscan, one_gadget (binary exploit helper), zsteg (steg)
+RUN gem install evil-winrm wpscan one_gadget zsteg --no-document || true
 
 # Go / Rust tools — pre-built binaries
 # Use curl redirect trick to resolve latest version without hitting GitHub API rate limits.
@@ -105,6 +123,31 @@ RUN VER=$(curl -sfL -o /dev/null -w "%{url_effective}" \
         | tar xz -C /usr/local/bin terrascan \
     || echo "WARNING: terrascan not installed"
 
+# tomnomnom Go tools — waybackurls, anew, qsreplace
+RUN VER=$(curl -sfL -o /dev/null -w "%{url_effective}" \
+        https://github.com/tomnomnom/waybackurls/releases/latest | sed 's|.*/tag/||; s/^v//') && \
+    curl -sL "https://github.com/tomnomnom/waybackurls/releases/download/v${VER}/waybackurls-linux-amd64-${VER}.tgz" \
+        | tar xz -C /usr/local/bin waybackurls && chmod +x /usr/local/bin/waybackurls \
+    || echo "WARNING: waybackurls not installed"
+
+RUN VER=$(curl -sfL -o /dev/null -w "%{url_effective}" \
+        https://github.com/tomnomnom/anew/releases/latest | sed 's|.*/tag/||; s/^v//') && \
+    curl -sL "https://github.com/tomnomnom/anew/releases/download/v${VER}/anew-linux-amd64-${VER}.tgz" \
+        | tar xz -C /usr/local/bin anew && chmod +x /usr/local/bin/anew \
+    || echo "WARNING: anew not installed"
+
+RUN VER=$(curl -sfL -o /dev/null -w "%{url_effective}" \
+        https://github.com/tomnomnom/qsreplace/releases/latest | sed 's|.*/tag/||; s/^v//') && \
+    curl -sL "https://github.com/tomnomnom/qsreplace/releases/download/v${VER}/qsreplace-linux-amd64-${VER}.tgz" \
+        | tar xz -C /usr/local/bin qsreplace && chmod +x /usr/local/bin/qsreplace \
+    || echo "WARNING: qsreplace not installed"
+
+RUN VER=$(curl -sfL -o /dev/null -w "%{url_effective}" \
+        https://github.com/Sh1yo/x8/releases/latest | sed 's|.*/tag/||; s/^v//') && \
+    curl -sL "https://github.com/Sh1yo/x8/releases/download/v${VER}/x8_linux_x86_64.tar.gz" \
+        | tar xz -C /usr/local/bin x8 && chmod +x /usr/local/bin/x8 \
+    || echo "WARNING: x8 not installed"
+
 # Node.js MCP SSE bridge
 RUN npm install -g supergateway
 
@@ -137,6 +180,26 @@ RUN /opt/hexstrike-env/bin/pip install --no-cache-dir \
         kube-hunter prowler scoutsuite checkov \
         volatility3 theHarvester \
     || echo "WARNING: some security Python tools not installed"
+
+# Additional pip security tools
+RUN /opt/hexstrike-env/bin/pip install --no-cache-dir \
+    ROPgadget ropper \
+    shodan censys \
+    uro \
+    sherlock-project \
+    || echo "WARNING: some pip security tools not installed"
+
+# Symlinks so hexstrike's `which` checks match installed binary names
+RUN ln -sf /opt/hexstrike-env/bin/vol3      /usr/local/bin/vol          2>/dev/null || true && \
+    ln -sf /opt/hexstrike-env/bin/vol3      /usr/local/bin/volatility3  2>/dev/null || true && \
+    ln -sf /opt/hexstrike-env/bin/ROPgadget /usr/local/bin/ropgadget    2>/dev/null || true && \
+    ln -sf /opt/hexstrike-env/bin/pwn       /usr/local/bin/pwntools     2>/dev/null || true && \
+    ln -sf /opt/hexstrike-env/bin/sherlock  /usr/local/bin/sherlock     2>/dev/null || true && \
+    ln -sf /opt/hexstrike-env/bin/checkov   /usr/local/bin/checkov      2>/dev/null || true && \
+    ln -sf /opt/hexstrike-env/bin/prowler   /usr/local/bin/prowler      2>/dev/null || true && \
+    ln -sf /opt/hexstrike-env/bin/scout-suite /usr/local/bin/scout-suite 2>/dev/null || true && \
+    ln -sf /usr/bin/netexec                 /usr/local/bin/nxc          2>/dev/null || true && \
+    ln -sf /usr/bin/msfvenom                /usr/local/bin/msfvenom     2>/dev/null || true
 
 # Re-pin pydantic v2 last — kube-hunter/scoutsuite may downgrade it to v1,
 # which breaks fastmcp (TypeAdapter was added in pydantic v2).
