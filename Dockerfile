@@ -56,8 +56,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     recon-ng \
     # API / utility
     httpie \
-    # Port scanner
-    rustscan \
     # Exploit DB / searchsploit
     exploitdb \
     # Hex editor
@@ -101,6 +99,14 @@ RUN URL=$(curl -sf https://api.github.com/repos/hakluke/hakrawler/releases/lates
     find /tmp/hakrawler-bin -name 'hakrawler' -exec mv {} /usr/local/bin/hakrawler \; && \
     rm -rf /tmp/hakrawler.zip /tmp/hakrawler-bin && chmod +x /usr/local/bin/hakrawler \
     || echo "WARNING: hakrawler not installed"
+
+# RustScan — not in Kali apt, install via .deb from GitHub releases
+RUN URL=$(curl -sf https://api.github.com/repos/RustScan/RustScan/releases/latest \
+        | grep '"browser_download_url"' | grep 'amd64.deb' | head -1 \
+        | sed 's/.*"\(https[^"]*\)".*/\1/') && \
+    [ -n "$URL" ] && curl -sL "$URL" -o /tmp/rustscan.deb && \
+    dpkg -i /tmp/rustscan.deb && rm /tmp/rustscan.deb \
+    || echo "WARNING: rustscan not installed"
 
 # Binary tools not in apt
 RUN VER=$(curl -sfL -o /dev/null -w "%{url_effective}" \
