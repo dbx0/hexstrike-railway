@@ -62,7 +62,6 @@ echo "[hexstrike] Starting supergateway (MCP Streamable HTTP) on port ${MCP_STRE
         --port "$MCP_STREAM_PORT" \
         --stdio "$MCP_STDIO_CMD" \
         --outputTransport streamableHttp \
-        --stateful \
         --streamableHttpPath /mcp \
         2>&1 | sed 's/^/[supergateway-stream] /'
     echo "[hexstrike] supergateway-stream exited, restarting in 1s..."
